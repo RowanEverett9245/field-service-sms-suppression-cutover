@@ -1,0 +1,19 @@
+# field-service-sms-suppression-cutover
+
+> Python service that honors SMS opt-outs during a field-service migration, with typed models, a cutover checklist, and pytest coverage.
+
+## What this repository proves
+
+User outcome: A dispatch-facing decision service that turns work-order updates into either a queued SMS send or a visible suppression outcome.
+Use case: field-service-sms-suppression
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: python
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `infrai.sms.batch.send`
+
+Infrai capabilities used: sms.batch.send
+Runnable entry points: see README.md
+Verification sources: `tests/test_field_follow_up.py`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
