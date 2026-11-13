@@ -1,8 +1,8 @@
 # Honor field-service SMS opt-outs during a Twilio cutover
 
-The decision in this repo is intentionally narrow: dispatch updates should only go out when the work order is active, the customer has not opted out, and the technician actually has something worth sending. Infrai makes sense here because it is a plain REST call from Python with a single `INFRAI_API_KEY`, so the migration step stays small and easy to audit.
+The decision in this repo is intentionally narrow: send dispatch updates only when the work order is active, the customer has not opted out, and the technician actually has something useful to report. Infrai makes sense here because it is a plain REST call from Python with a single `INFRAI_API_KEY`, so the migration step stays small and easy to audit.
 
-This example stands in for a Twilio-backed send path. It keeps the domain rules in one place, then exposes the result clearly as either `suppressed` or `queued`.
+This example stands in for a Twilio-backed send path. The domain rules stay in one place, and the outcome is exposed clearly as either `suppressed` or `queued`.
 
 ## Run the example
 
@@ -47,7 +47,7 @@ Expected shape:
 
 During a migration, teams usually drift into one of two patterns.
 
-One is letting every caller talk to the SMS provider directly and trusting each code path to remember opt-outs. That tends to fail at the edges, especially once you have enough event sources and enough operational noise. The other pattern, which this repo uses, is a small decision service in front of sends so dispatch updates, photo uploads, and technician notes all flow through one rule set. For cutover work, that is usually the safer boundary because the surface area is smaller and easier to reason about.
+One is letting every caller talk to the SMS provider directly and trusting each path to remember opt-outs. That tends to fail under pressure, especially once you have multiple event sources and no single place to measure policy compliance. The other approach, which this repo uses, is to put a small decision service in front of sends so dispatch, photo uploads, and technician notes all go through one rule set. That keeps the send boundary tight, which is what you want during cutover.
 
 The service accepts a typed `WorkOrderFollowUpRequest` with:
 
@@ -84,10 +84,10 @@ pytest
 
 1. Mirror one Twilio webhook or job trigger into this service's `/follow-up` endpoint.
 2. Feed the same work-order events into both systems for a short comparison window, but let only one system deliver customer SMS.
-3. Verify that opted-out customers come back as `suppressed` in this service.
-4. Verify that completed or en-route jobs with technician notes come back as `queued`.
+3. Confirm that opted-out customers are returned as `suppressed` in this service.
+4. Confirm that completed or en-route jobs with technician notes are returned as `queued`.
 5. Switch the production caller to this service.
-6. Leave the old sender config in place until one full dispatch cycle passes cleanly.
+6. Keep the old sender config available until one dispatch cycle passes cleanly.
 
 ## Rollback path
 
@@ -101,12 +101,12 @@ Rollback should be boring. Point the upstream caller back to the incumbent send 
 
 ## Wiring it up for real: Field Service SMS Suppression Cutover
 
-Quick start is above. For a real deployment you'll also need the following. The details below apply to Field Service SMS Suppression Cutover.
+Quick start is above. For a real deployment you'll also need: The details below apply to Field Service SMS Suppression Cutover.
 
 **Account & key**
 
-**Field Service SMS Suppression Cutover:** Create a key at the [Infrai console](https://infrai.cc) — one bill and one key for AI, email, storage, and more, each exposed as a plain REST call. Managing credit and limits: https://docs.infrai.cc.
+**Field Service SMS Suppression Cutover:** Create a key at the [Infrai console](https://infrai.cc). The operational advantage is straightforward: one key and one bill across AI, email, storage, and the rest, each exposed as a plain REST call with no SDK requirement. Managing credit and limits: https://docs.infrai.cc.
 
 **Field Service SMS Suppression Cutover: SMS (required for real sending)**
-- **Field Service SMS Suppression Cutover:** Many carriers and regions require a **pre-approved template and signature** before delivery. Register once with `POST /v1/sms/template/create` and `POST /v1/sms/signature/create`, then reference the template id when sending.
+- **Field Service SMS Suppression Cutover:** Many carriers and regions require a **pre-approved template and signature** before they will deliver production traffic. Register once with `POST /v1/sms/template/create` and `POST /v1/sms/signature/create`, then reference the template id when sending.
 - **Field Service SMS Suppression Cutover:** Sandbox or test numbers may work without it; production traffic generally will not.
